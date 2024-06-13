@@ -68,7 +68,9 @@ class LDPC:
         
         # shuffle h rows
         # random.shuffle(self.H)
+        self.makeGraph()
 
+    def makeGraph(self):
         for i in range(self.N):
             for j in range(self.M):
                 if(self.H[j][i] == 1):
@@ -147,7 +149,6 @@ class CanalGauss:
                 Vnodes[i].value = 1
             else:
                 Vnodes[i].value = -1
-
         r = []
         for i in range(len(Vnodes)):
             r.append(0 if Vnodes[i].value >= 0 else 1)
