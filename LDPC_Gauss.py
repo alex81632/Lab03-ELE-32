@@ -23,8 +23,7 @@ class Edge:
         self.cnode = cnode
         self.vnode = vnode
         self.val = 0
-    
-        
+       
 class LDPC:
     def __init__(self, N, dv, dc):
         self.N = N
@@ -36,7 +35,7 @@ class LDPC:
         self.H = []
         self.generateLDPCCode()
         self.H = np.array(self.H)
-        np.savetxt("H.txt", self.H, fmt='%d')
+        # np.savetxt("H.txt", self.H, fmt='%d')
 
     def cols_to_rows(self, h):
         h2 = []
@@ -69,11 +68,10 @@ class LDPC:
                     self.CNodes[j].edges.append(edge)
                     self.VNodes[i].edges.append(edge)
 
-
 class CanalGauss:
     def __init__(self, eb_n0):
         self.sigma2 = 1/(2*eb_n0)
-        self.max_iter = 10
+        self.max_iter = 50
     
     def canal(self, v):
         r = []
@@ -102,46 +100,54 @@ class CanalGauss:
         for _ in range(self.max_iter):
 
             # Vnodes belief propagation
-            for i in range(len(Vnodes)):
-                sum = Vnodes[i].value
-                for j in range(len(Vnodes[i].edges)):
-                    sum += Vnodes[i].edges[j].val
-                for j in range(len(Vnodes[i].edges)):
-                    Vnodes[i].edges[j].val = sum - Vnodes[i].edges[j].val
+            for vnode in Vnodes:
+                sum = vnode.value
+                for edge in vnode.edges:
+                    sum += edge.val
+                for edge in vnode.edges:
+                    edge.val = sum - edge.val
+                # print(sum)
 
             # Stop condition
             if(self.stopCondition(Cnodes)):
                 break
 
             # Cnodes belief propagation
-            for i in range(len(Cnodes)):
-                for j in range(len(Cnodes[i].edges)):
-                    prod = 1
-                    min = np.Inf
-                    for k in range(len(Cnodes[i].edges)):
-                        if(k != j):
-                            prod *= Cnodes[i].edges[k].val
-                            if(abs(Cnodes[i].edges[k].val) < min):
-                                min = abs(Cnodes[i].edges[k].val)
+            for cnode in Cnodes:
+                min = np.Inf
+                second_min = np.Inf
+                prod = 1
+                for edge in cnode.edges:
+                    prod *= edge.val
+                    if abs(edge.val) <= min:
+                        second_min = min
+                        min = abs(edge.val)
+                    elif abs(edge.val) < second_min:
+                        second_min = abs(edge.val)
+                # print(min, second_min, prod)
 
-                    Cnodes[i].edges[j].val = np.sign(prod) * min
-        
+                for edge in cnode.edges:
+                    if abs(edge.val) == min:
+                        edge.val = np.sign(prod * edge.val) * second_min
+                    else:
+                        edge.val = np.sign(prod *edge.val) * min
+
         # Decode
         r = []
-        for i in range(len(Vnodes)):
-            sum = Vnodes[i].value
-            for j in range(len(Vnodes[i].edges)):
-                sum += Vnodes[i].edges[j].val
+        for vnode in Vnodes:
+            sum = vnode.value
+            for edge in vnode.edges:
+                sum += edge.val
             r.append(0 if sum >= 0 else 1)
 
         return r
     
     def stopCondition(self, Cnodes):
         allPositive = True
-        for i in range(len(Cnodes)):
+        for cnode in Cnodes:
             prod = 1
-            for j in range(len(Cnodes[i].edges)):
-                prod *= Cnodes[i].edges[j].val
+            for edge in cnode.edges:
+                prod *= edge.val
             if(prod < 0):
                 allPositive = False
                 break
