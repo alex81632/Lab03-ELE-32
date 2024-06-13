@@ -36,7 +36,7 @@ class LDPC:
         self.H = []
         self.generateLDPCCode()
         self.H = np.array(self.H)
-        print(self.H)
+        # print(self.H)
         # export H to file as 0 and 1
         np.savetxt("H.txt", self.H, fmt='%d')
         self.max_iter = 50
@@ -80,6 +80,7 @@ class LDPC:
 class CanalGauss:
     def __init__(self, eb_n0):
         self.sigma2 = 1/(2*eb_n0)
+        self.max_iter = 10
     
     def canal(self, v):
         r = []
@@ -97,6 +98,60 @@ class CanalGauss:
             L.append(2*r[i]/self.sigma2)
         return L
 
+    def beliefPropagation(self, L, Vnodes, Cnodes):
+        for i in range(len(L)):
+            Vnodes[i].value = L[i]
+
+        for _ in range(self.max_iter):
+            for i in range(len(Vnodes)):
+                sum = Vnodes[i].value
+                for j in range(len(Vnodes[i].edges)):
+                    sum += Vnodes[i].edges[j].val
+                for j in range(len(Vnodes[i].edges)):
+                    Vnodes[i].edges[j].val = sum - Vnodes[i].edges[j].val
+
+            allPositive = True
+            for i in range(len(Cnodes)):
+                prod = 1
+                for j in range(len(Cnodes[i].edges)):
+                    prod *= Cnodes[i].edges[j].val
+                if(prod < 0):
+                    allPositive = False
+                    break
+
+            if(allPositive):
+                break
+
+            for i in range(len(Cnodes)):
+                for j in range(len(Cnodes[i].edges)):
+                    prod = 1
+                    min = np.Inf
+                    for k in range(len(Cnodes[i].edges)):
+                        if(k != j):
+                            prod *= Cnodes[i].edges[k].val
+                            if(abs(Cnodes[i].edges[k].val) < min):
+                                min = abs(Cnodes[i].edges[k].val)
+                    if(prod < 0):
+                        Cnodes[i].edges[j].val = -min
+                        # print(Cnodes[i].edges[j].val)
+                    elif(prod > 0):
+                        Cnodes[i].edges[j].val = min
+                    else:
+                        Cnodes[i].edges[j].val = 0
+
+        for i in range(len(Vnodes)):
+            sum = Vnodes[i].value
+            for j in range(len(Vnodes[i].edges)):
+                sum += Vnodes[i].edges[j].val
+            if sum >= 0:
+                Vnodes[i].value = 1
+            else:
+                Vnodes[i].value = -1
+
+        r = []
+        for i in range(len(Vnodes)):
+            r.append(0 if Vnodes[i].value >= 0 else 1)
+        return r
 
 if __name__ == "__main__":
     N = 99
