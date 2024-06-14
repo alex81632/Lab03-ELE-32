@@ -35,7 +35,6 @@ class LDPC:
         self.H = []
         self.generateLDPCCode()
         self.H = np.array(self.H)
-        # np.savetxt("H.txt", self.H, fmt='%d')
 
     def cols_to_rows(self, h):
         h2 = []
@@ -71,7 +70,7 @@ class LDPC:
 class CanalGauss:
     def __init__(self, eb_n0):
         self.sigma2 = 1/(2*eb_n0)
-        self.max_iter = 50
+        self.max_iter = 10
     
     def canal(self, v):
         r = []
